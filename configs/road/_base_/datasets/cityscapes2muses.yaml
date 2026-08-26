@@ -4,13 +4,13 @@ model:
 data:
   target_labeled:
     root: data/road/muses
-    split: data/road/splits/muses/random/1_64/labeled.txt
+    split: splits/road/muses/random/1_64/labeled.txt
   target_unlabeled:
     root: data/road/muses
-    split: data/road/splits/muses/random/1_64/unlabeled.txt
+    split: splits/road/muses/random/1_64/unlabeled.txt
   target_val:
     root: data/road/muses
-    split: data/road/splits/muses/val.txt
+    split: splits/road/muses/val.txt
   source:
     root: data/road/cityscapes
     split: data/road/cityscapes/train.txt
