@@ -1,0 +1,46 @@
+model:
+  family: native
+  pretrained: pretrained/MS_DeepLab_resnet_pretrained_COCO_init.pth
+
+input:
+  resize: [256, 512]
+  crop_size: [256, 512]
+  color_order: bgr
+  mean: [104.00698793, 116.66876762, 122.67891434]
+  std: [1.0, 1.0, 1.0]
+
+training:
+  max_iters: 80000
+  batch_size: 4
+  workers: 4
+  amp: false
+  log_interval: 50
+  save_interval: 10000
+
+optimizer:
+  type: sgd
+  lr: 0.00025
+  momentum: 0.9
+  weight_decay: 0.0005
+  power: 0.9
+
+ads:
+  consistency_weight: 10.0
+  stabilization_weight: 100.0
+  consistency_rampup: 800
+  stabilization_rampup: 800
+  stable_threshold: 0.8
+  discriminator_lr: 0.00001
+  self_training_threshold: 0.9
+  self_training_weight: 1.0
+  feature_matching_weight: 0.1
+  source_weight: 1.0
+
+evaluation:
+  interval: 10000
+  workers: 2
+
+runtime:
+  device: cuda
+  seed: 0
+  benchmark: true

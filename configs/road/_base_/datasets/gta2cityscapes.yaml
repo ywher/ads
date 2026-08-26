@@ -1,0 +1,16 @@
+experiment: gta2cityscapes
+model:
+  num_classes: 19
+data:
+  target_labeled:
+    root: data/road/cityscapes
+    split: data/road/splits/cityscapes/random/1_64/labeled.txt
+  target_unlabeled:
+    root: data/road/cityscapes
+    split: data/road/splits/cityscapes/random/1_64/unlabeled.txt
+  target_val:
+    root: data/road/cityscapes
+    split: data/road/splits/cityscapes/val.txt
+  source:
+    root: data/road/gta
+    split: data/road/gta/train.txt

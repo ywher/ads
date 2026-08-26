@@ -60,9 +60,13 @@ def flatten_grid_locations(grid_locations, image_height, image_width):
     return np.reshape(grid_locations, [image_height * image_width, 2])
 
 def create_dense_flows(flattened_flows, batch_size, image_height, image_width):
-    # possibly .view
-    #return torch.reshape(flattened_flows, [batch_size, image_height, image_width, 2])
-    return torch.reshape(flattened_flows, [1, image_height, image_width, 2])
+    dense = torch.reshape(flattened_flows, [-1, image_height, image_width, 2])
+    if dense.shape[0] == 1 and batch_size > 1:
+        dense = dense.expand(batch_size, -1, -1, -1)
+    if dense.shape[0] != batch_size:
+        raise ValueError(
+            f"Flow batch {dense.shape[0]} does not match image batch {batch_size}")
+    return dense
 
 def interpolate_spline(train_points, train_values, query_points, order, regularization_weight=0.0, ):
     # First, fit the spline to the observed data.
@@ -113,7 +117,7 @@ def solve_interpolation(train_points, train_values, order, regularization_weight
     # Then, solve the linear system and unpack the results.
     lhs[lhs<0] = 0
     lhs = lhs.float()
-    X, LU = torch.solve(rhs, lhs)
+    X = torch.linalg.solve(lhs, rhs)
     #X, LU = torch.gesv(rhs, lhs)#pytorch1.0
     #X = np.linalg.solve(lhs.cpu().numpy(), rhs.cpu().numpy())
     #X = torch.from_numpy(X).cuda()
@@ -134,7 +138,7 @@ def cross_squared_distance_matrix(x, y):
     x_norm_squared = torch.sum(torch.mul(x, x), dim=2).unsqueeze(2)
     y_norm_squared = torch.sum(torch.mul(y, y), dim=2).unsqueeze(1)
 
-    x_y_transpose = torch.matmul(x.squeeze(0), y.squeeze(0).transpose(0, 1))
+    x_y_transpose = torch.matmul(x, y.transpose(1, 2))
     # squared_dists[b,i,j] = ||x_bi - y_bj||^2 = x_bi'x_bi- 2x_bi'x_bj + x_bj'x_bj
     squared_dists = x_norm_squared - 2 * x_y_transpose + y_norm_squared
     return squared_dists.float()
@@ -181,7 +185,10 @@ def apply_interpolation(query_points, train_points, w, v, order):
     Returns:
     Polyharmonic interpolation evaluated at points defined in query_points.
     """
-    query_points = query_points.unsqueeze(0)
+    if query_points.ndim == 2:
+        query_points = query_points.unsqueeze(0)
+    if query_points.shape[0] == 1 and train_points.shape[0] > 1:
+        query_points = query_points.expand(train_points.shape[0], -1, -1)
     # First, compute the contribution from the rbf term.
     pairwise_dists = cross_squared_distance_matrix(query_points.float(), train_points.float())
     phi_pairwise_dists = phi(pairwise_dists, order)
@@ -230,21 +237,16 @@ def dense_image_warp(image, flow):
 
     # The flow is defined on the image grid. Turn the flow into a list of query
     # points in the grid space.
-    grid_x, grid_y = torch.meshgrid(
-        torch.arange(width, device = device), torch.arange(height, device = device))
+    grid_y, grid_x = torch.meshgrid(
+        torch.arange(height, device=device),
+        torch.arange(width, device=device),
+        indexing='ij')
 
     #stacked_grid = torch.stack((grid_y, grid_x), dim=2).float()
-    stacked_grid = torch.stack((grid_x, grid_y), dim=2).float()
-
-    batched_grid = stacked_grid.unsqueeze(-1).permute(3, 1, 0, 2)
+    stacked_grid = torch.stack((grid_y, grid_x), dim=2).float()
+    batched_grid = stacked_grid.unsqueeze(0).expand(batch_size, -1, -1, -1)
 
     query_points_on_grid = batched_grid - flow
-    if batch_size != 1:
-        query_points_on_grid_list = []
-        for _ in range(batch_size):
-            query_points_on_grid_list.append(query_points_on_grid)
-        query_points_on_grid = torch.cat(query_points_on_grid_list, dim=0)
-
     query_points_flattened = torch.reshape(query_points_on_grid,
                                            [batch_size, height * width, 2])
 
@@ -252,8 +254,12 @@ def dense_image_warp(image, flow):
     # may wrong h w
     #a = torch.Tensor(np.array([width - 1, height - 1]), device = image.device)
     
-    query_points_on_grid = query_points_on_grid / (width-1) *2 -1
-    interpolated = torch.nn.functional.grid_sample(image, query_points_on_grid)
+    norm_y = query_points_on_grid[..., 0] / max(height - 1, 1) * 2 - 1
+    norm_x = query_points_on_grid[..., 1] / max(width - 1, 1) * 2 - 1
+    sampling_grid = torch.stack((norm_x, norm_y), dim=-1)
+    interpolated = torch.nn.functional.grid_sample(
+        image, sampling_grid, mode='bilinear', padding_mode='border',
+        align_corners=True)
     interpolated = interpolated.permute([0,2,3,1])
 
     #mask = torch.autograd.Variable(torch.ones(image.size()))

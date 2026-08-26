@@ -1,0 +1,16 @@
+experiment: cityscapes2mapillary
+model:
+  num_classes: 19
+data:
+  target_labeled:
+    root: data/road/mapillary
+    split: data/road/splits/mapillary/random/1_128/labeled.txt
+  target_unlabeled:
+    root: data/road/mapillary
+    split: data/road/splits/mapillary/random/1_128/unlabeled.txt
+  target_val:
+    root: data/road/mapillary
+    split: data/road/splits/mapillary/val.txt
+  source:
+    root: data/road/cityscapes
+    split: data/road/cityscapes/train.txt

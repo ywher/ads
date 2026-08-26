@@ -1,0 +1,3 @@
+base: [../../_base_/vfm.yaml, ../../_base_/datasets/synthia2cityscapes.yaml]
+protocol: semi
+output_dir: outputs/road/vfm/semi/synthia2cityscapes_1_64

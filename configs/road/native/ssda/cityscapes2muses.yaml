@@ -1,0 +1,3 @@
+base: [../../_base_/native.yaml, ../../_base_/datasets/cityscapes2muses.yaml]
+protocol: ssda
+output_dir: outputs/road/native/ssda/cityscapes2muses_1_64

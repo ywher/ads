@@ -1,0 +1,16 @@
+experiment: cityscapes2acdc
+model:
+  num_classes: 19
+data:
+  target_labeled:
+    root: data/road/acdc
+    split: data/road/splits/acdc/random/1_64/labeled.txt
+  target_unlabeled:
+    root: data/road/acdc
+    split: data/road/splits/acdc/random/1_64/unlabeled.txt
+  target_val:
+    root: data/road/acdc
+    split: data/road/splits/acdc/val.txt
+  source:
+    root: data/road/cityscapes
+    split: data/road/cityscapes/train.txt

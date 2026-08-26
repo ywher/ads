@@ -120,7 +120,7 @@ class DGW(object) :
             fix_idx = 4
         else:
             fix_idx = 0
-        source_locs = base_locs
+        source_locs = base_locs.copy()
         source_locs[fix_idx:,0] = np.minimum(np.maximum(base_locs[fix_idx:,0]  + 
                                             np.random.randn(base_locs.shape[0] - fix_idx)*self.block_h*self.src_rand_range, 0), self.img_h-1)
         source_locs[fix_idx:,1] = np.minimum(np.maximum(base_locs[fix_idx:,1]  + 
@@ -130,8 +130,13 @@ class DGW(object) :
                                             np.random.randn(base_locs.shape[0] - fix_idx)*self.block_h*self.dst_rand_range, 0), self.img_h-1)
         dest_locs[fix_idx:,1]  = np.minimum(np.maximum(source_locs[fix_idx:,1]  + 
                                             np.random.randn(base_locs.shape[0] - fix_idx)*self.block_w*self.dst_rand_range, 0), self.img_w-1)
-        source_locs = torch.Tensor(source_locs).unsqueeze(0).cuda()
-        dest_locs = torch.Tensor(dest_locs).unsqueeze(0).cuda()
+        batch_size = img_tensor.shape[0]
+        source_locs = torch.as_tensor(
+            source_locs, dtype=img_tensor.dtype, device=img_tensor.device
+        ).unsqueeze(0).expand(batch_size, -1, -1).contiguous()
+        dest_locs = torch.as_tensor(
+            dest_locs, dtype=img_tensor.dtype, device=img_tensor.device
+        ).unsqueeze(0).expand(batch_size, -1, -1).contiguous()
         warped_image, _ = sparse_image_warp(img_tensor, source_locs, dest_locs, interpolation_order=1, regularization_weight=0.0, num_boundaries_points=0)
         return warped_image.permute(0, 3, 1, 2), source_locs, dest_locs
 

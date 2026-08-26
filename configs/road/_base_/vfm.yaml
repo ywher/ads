@@ -1,0 +1,48 @@
+model:
+  family: vfm
+  pretrained: pretrained/dinov3_vitb16.pth
+
+input:
+  resize: [1024, 2048]
+  crop_size: [1024, 1024]
+  color_order: rgb
+  mean: [123.675, 116.28, 103.53]
+  std: [58.395, 57.12, 57.375]
+
+training:
+  max_iters: 40000
+  batch_size: 2
+  workers: 4
+  amp: false
+  log_interval: 50
+  save_interval: 10000
+
+optimizer:
+  type: adamw
+  lr: 0.0001
+  betas: [0.9, 0.999]
+  weight_decay: 0.05
+  power: 1.0
+  warmup_iters: 1500
+  warmup_ratio: 0.000001
+
+ads:
+  consistency_weight: 10.0
+  stabilization_weight: 100.0
+  consistency_rampup: 800
+  stabilization_rampup: 800
+  stable_threshold: 0.8
+  discriminator_lr: 0.00001
+  self_training_threshold: 0.9
+  self_training_weight: 1.0
+  feature_matching_weight: 0.1
+  source_weight: 1.0
+
+evaluation:
+  interval: 10000
+  workers: 2
+
+runtime:
+  device: cuda
+  seed: 0
+  benchmark: true

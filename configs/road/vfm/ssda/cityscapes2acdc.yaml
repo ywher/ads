@@ -1,0 +1,3 @@
+base: [../../_base_/vfm.yaml, ../../_base_/datasets/cityscapes2acdc.yaml]
+protocol: ssda
+output_dir: outputs/road/vfm/ssda/cityscapes2acdc_1_64

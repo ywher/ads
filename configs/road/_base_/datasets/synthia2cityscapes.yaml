@@ -1,0 +1,18 @@
+experiment: synthia2cityscapes
+model:
+  num_classes: 16
+data:
+  target_labeled:
+    root: data/road/cityscapes
+    split: data/road/splits/cityscapes/random/1_64/labeled.txt
+    label_map: cityscapes_to_synthia16
+  target_unlabeled:
+    root: data/road/cityscapes
+    split: data/road/splits/cityscapes/random/1_64/unlabeled.txt
+  target_val:
+    root: data/road/cityscapes
+    split: data/road/splits/cityscapes/val.txt
+    label_map: cityscapes_to_synthia16
+  source:
+    root: data/road/synthia
+    split: data/road/synthia/train.txt
