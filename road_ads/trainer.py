@@ -5,6 +5,7 @@ import math
 import random
 import time
 from contextlib import nullcontext
+from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Dict, Iterable, Optional, Tuple
 
@@ -353,8 +354,11 @@ def train(config: Dict[str, object]) -> None:
     log_interval = int(config["training"].get("log_interval", 50))
     best = -1.0
     start = time.time()
+    iteration_time_ema = None
+    eta_ema_decay = float(config["training"].get("eta_ema_decay", 0.9))
 
     for step in range(1, max_steps + 1):
+        iteration_start = time.time()
         left.train()
         right.train()
         left_disc.train()
@@ -416,16 +420,28 @@ def train(config: Dict[str, object]) -> None:
         right_disc_loss = _discriminator_step(
             right_disc, right_disc_opt, right_fake, real_input)
 
+        iteration_seconds = time.time() - iteration_start
+        if iteration_time_ema is None:
+            iteration_time_ema = iteration_seconds
+        else:
+            iteration_time_ema = (
+                eta_ema_decay * iteration_time_ema
+                + (1.0 - eta_ema_decay) * iteration_seconds
+            )
+
         if step % log_interval == 0 or step == 1:
             elapsed = time.time() - start
-            eta = elapsed / step * (max_steps - step)
+            eta = iteration_time_ema * (max_steps - step)
+            finish = datetime.now() + timedelta(seconds=eta)
             print(
                 f"iter {step:06d}/{max_steps:06d} "
                 f"left={left_stats['total']:.4f} right={right_stats['total']:.4f} "
                 f"sup={0.5 * (left_stats['sup'] + right_stats['sup']):.4f} "
                 f"src={0.5 * (left_stats['source'] + right_stats['source']):.4f} "
                 f"D={0.5 * (left_disc_loss + right_disc_loss):.4f} "
-                f"elapsed={elapsed / 3600:.2f}h eta={eta / 3600:.2f}h",
+                f"iter_ema={iteration_time_ema:.2f}s "
+                f"elapsed={elapsed / 3600:.2f}h eta={eta / 3600:.2f}h "
+                f"finish={finish:%Y-%m-%d %H:%M}",
                 flush=True)
 
         if step % eval_interval == 0 or step == max_steps:
