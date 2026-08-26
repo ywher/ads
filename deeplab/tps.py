@@ -103,10 +103,8 @@ def solve_interpolation(train_points, train_values, order, regularization_weight
 
     num_b_cols = matrix_b.shape[2]  # d + 1
 
-    # In Tensorflow, zeros are used here. Pytorch gesv fails with zeros for some reason we don't understand.
-    # So instead we use very tiny randn values (variance of one, zero mean) on one side of our multiplication.
-    lhs_zeros = torch.randn((b, num_b_cols, num_b_cols), device = device) / 1e10
-    #lhs_zeros = torch.zeros((b, num_b_cols, num_b_cols), device = device)
+    lhs_zeros = torch.zeros(
+        (b, num_b_cols, num_b_cols), dtype=matrix_b.dtype, device=device)
     right_block = torch.cat((matrix_b, lhs_zeros),
                             1)  # [b, n + d + 1, d + 1]
     lhs = torch.cat((left_block, right_block),
@@ -114,10 +112,20 @@ def solve_interpolation(train_points, train_values, order, regularization_weight
     rhs_zeros = torch.zeros((b, d + 1, k), dtype=train_points.dtype, device = device).float()
     rhs = torch.cat((f, rhs_zeros), 1)  # [b, n + d + 1, k]
 
-    # Then, solve the linear system and unpack the results.
-    lhs[lhs<0] = 0
+    # Then, solve the linear system and unpack the results. Randomly perturbed
+    # control points can occasionally coincide after boundary clipping, making
+    # the TPS system rank deficient. Use the fast exact solve normally and a
+    # pseudoinverse only for these rare degenerate samples.
     lhs = lhs.float()
-    X = torch.linalg.solve(lhs, rhs)
+    if regularization_weight > 0:
+        eye = torch.eye(n, dtype=lhs.dtype, device=device).expand(b, -1, -1)
+        lhs[:, :n, :n] = lhs[:, :n, :n] + regularization_weight * eye
+    X, solve_info = torch.linalg.solve_ex(lhs, rhs, check_errors=False)
+    failed = solve_info.ne(0) | ~torch.isfinite(X).flatten(1).all(dim=1)
+    if failed.any():
+        X = X.clone()
+        X[failed] = torch.matmul(
+            torch.linalg.pinv(lhs[failed]), rhs[failed])
     #X, LU = torch.gesv(rhs, lhs)#pytorch1.0
     #X = np.linalg.solve(lhs.cpu().numpy(), rhs.cpu().numpy())
     #X = torch.from_numpy(X).cuda()

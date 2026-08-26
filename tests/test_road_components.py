@@ -8,7 +8,7 @@ import torch
 REPO_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO_ROOT))
 
-from deeplab.tps import sparse_image_warp
+from deeplab.tps import solve_interpolation, sparse_image_warp
 from perturbations import DGW
 from road_ads.config import load_config
 from road_ads.models import NativeDeepLabV2
@@ -34,6 +34,17 @@ def test_dgw_batch_and_backward():
     assert logits.grad is not None
 
 
+def test_tps_degenerate_control_points():
+    points = torch.tensor(
+        [[[0.0, 0.0], [0.0, 0.0], [1.0, 1.0], [1.0, 1.0]]],
+        dtype=torch.float32,
+    )
+    values = torch.randn(1, 4, 2)
+    weights, affine = solve_interpolation(points, values, 1, 0.0)
+    assert torch.isfinite(weights).all()
+    assert torch.isfinite(affine).all()
+
+
 def test_native_forward_backward_without_pretrain():
     model = NativeDeepLabV2(num_classes=19)
     image = torch.randn(1, 3, 64, 128)
@@ -45,5 +56,6 @@ def test_native_forward_backward_without_pretrain():
 if __name__ == "__main__":
     test_config_inheritance()
     test_dgw_batch_and_backward()
+    test_tps_degenerate_control_points()
     test_native_forward_backward_without_pretrain()
     print("road ADS component tests passed")
