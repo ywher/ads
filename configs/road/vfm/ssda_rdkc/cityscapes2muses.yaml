@@ -1,0 +1,7 @@
+base: [../ssda/cityscapes2muses.yaml]
+output_dir: outputs/road/vfm/ssda_rdkc/cityscapes2muses_1_64
+data:
+  target_labeled:
+    split: splits/road/muses/rdkc/1_64/labeled.txt
+  target_unlabeled:
+    split: splits/road/muses/rdkc/1_64/unlabeled.txt
