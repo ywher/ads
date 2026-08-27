@@ -24,6 +24,7 @@ def test_config_inheritance():
 
 def test_rdkc_ssda_configs():
     expected = {
+        "synthia2cityscapes": ("1_64", 46, 2975),
         "cityscapes2acdc": ("1_64", 25, 1600),
         "cityscapes2muses": ("1_64", 23, 1500),
         "cityscapes2mapillary": ("1_128", 140, 18000),
