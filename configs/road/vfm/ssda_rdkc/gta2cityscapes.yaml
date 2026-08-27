@@ -1,0 +1,7 @@
+base: [../ssda/gta2cityscapes.yaml]
+output_dir: outputs/road/vfm/ssda_rdkc/gta2cityscapes_1_64
+data:
+  target_labeled:
+    split: splits/road/cityscapes/rdkc_g2c/1_64/labeled.txt
+  target_unlabeled:
+    split: splits/road/cityscapes/rdkc_g2c/1_64/unlabeled.txt
