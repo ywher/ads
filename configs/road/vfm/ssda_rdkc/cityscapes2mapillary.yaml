@@ -1,0 +1,7 @@
+base: [../ssda/cityscapes2mapillary.yaml]
+output_dir: outputs/road/vfm/ssda_rdkc/cityscapes2mapillary_1_128
+data:
+  target_labeled:
+    split: splits/road/mapillary/rdkc/1_128/labeled.txt
+  target_unlabeled:
+    split: splits/road/mapillary/rdkc/1_128/unlabeled.txt

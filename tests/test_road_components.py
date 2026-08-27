@@ -21,6 +21,23 @@ def test_config_inheritance():
     assert config["model"]["num_classes"] == 19
 
 
+def test_rdkc_ssda_configs():
+    expected = {
+        "cityscapes2acdc": ("1_64", 25, 1600),
+        "cityscapes2mapillary": ("1_128", 140, 18000),
+    }
+    for transfer, (ratio, labeled_count, total_count) in expected.items():
+        config = load_config(f"configs/road/vfm/ssda_rdkc/{transfer}.yaml")
+        labeled = REPO_ROOT / config["data"]["target_labeled"]["split"]
+        unlabeled = REPO_ROOT / config["data"]["target_unlabeled"]["split"]
+        assert config["protocol"] == "ssda"
+        assert config["training"]["max_iters"] == 40000
+        assert config["output_dir"].endswith(f"{transfer}_{ratio}")
+        assert len(labeled.read_text().splitlines()) == labeled_count
+        assert len(labeled.read_text().splitlines()) + len(
+            unlabeled.read_text().splitlines()) == total_count
+
+
 def test_dgw_batch_and_backward():
     image = torch.randn(2, 3, 32, 64, requires_grad=True)
     dgw = DGW(num_split=2, img_h=32, img_w=64)

@@ -1,0 +1,7 @@
+base: [../ssda/cityscapes2acdc.yaml]
+output_dir: outputs/road/vfm/ssda_rdkc/cityscapes2acdc_1_64
+data:
+  target_labeled:
+    split: splits/road/acdc/rdkc/1_64/labeled.txt
+  target_unlabeled:
+    split: splits/road/acdc/rdkc/1_64/unlabeled.txt
