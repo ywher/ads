@@ -18,6 +18,7 @@ def test_config_inheritance():
     config = load_config("configs/road/vfm/ssda/gta2cityscapes.yaml")
     assert config["protocol"] == "ssda"
     assert config["training"]["max_iters"] == 40000
+    assert config["training"]["log_interval"] == 250
     assert config["model"]["num_classes"] == 19
 
 

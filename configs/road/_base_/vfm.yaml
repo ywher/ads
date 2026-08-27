@@ -14,7 +14,7 @@ training:
   batch_size: 2
   workers: 4
   amp: false
-  log_interval: 50
+  log_interval: 250
   eta_ema_decay: 0.9
   save_interval: 10000
 

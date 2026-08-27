@@ -352,10 +352,20 @@ def train(config: Dict[str, object]) -> None:
     eval_interval = int(config["evaluation"].get("interval", 10000))
     save_interval = int(config["training"].get("save_interval", eval_interval))
     log_interval = int(config["training"].get("log_interval", 50))
+    if log_interval <= 0:
+        raise ValueError("training.log_interval must be positive")
     best = -1.0
     start = time.time()
     iteration_time_ema = None
     eta_ema_decay = float(config["training"].get("eta_ema_decay", 0.9))
+    training_log = output / "training.jsonl"
+    with training_log.open("w", encoding="utf-8") as handle:
+        handle.write(json.dumps({
+            "event": "start",
+            "max_iters": max_steps,
+            "log_interval": log_interval,
+            "started_at": datetime.now().isoformat(timespec="seconds"),
+        }) + "\n")
 
     for step in range(1, max_steps + 1):
         iteration_start = time.time()
@@ -433,12 +443,43 @@ def train(config: Dict[str, object]) -> None:
             elapsed = time.time() - start
             eta = iteration_time_ema * (max_steps - step)
             finish = datetime.now() + timedelta(seconds=eta)
+            averaged = {
+                key: 0.5 * (left_stats[key] + right_stats[key])
+                for key in ("total", "sup", "source", "cons", "stable", "self", "fm", "selected")
+            }
+            discriminator_loss = 0.5 * (left_disc_loss + right_disc_loss)
+            learning_rate = float(left_opt.param_groups[0]["lr"])
+            record = {
+                "event": "train",
+                "step": step,
+                "max_iters": max_steps,
+                "lr": learning_rate,
+                "loss_total": averaged["total"],
+                "loss_supervised": averaged["sup"],
+                "loss_source": averaged["source"],
+                "loss_consistency": averaged["cons"],
+                "loss_stabilization": averaged["stable"],
+                "loss_self_training": averaged["self"],
+                "loss_feature_matching": averaged["fm"],
+                "loss_discriminator": discriminator_loss,
+                "pseudo_selected_ratio": averaged["selected"],
+                "consistency_weight": consistency_weight,
+                "stabilization_weight": stabilization_weight,
+                "iteration_seconds_ema": iteration_time_ema,
+                "elapsed_seconds": elapsed,
+                "eta_seconds": eta,
+                "estimated_finish": finish.isoformat(timespec="minutes"),
+            }
+            with training_log.open("a", encoding="utf-8") as handle:
+                handle.write(json.dumps(record) + "\n")
             print(
                 f"iter {step:06d}/{max_steps:06d} "
+                f"lr={learning_rate:.7f} "
                 f"left={left_stats['total']:.4f} right={right_stats['total']:.4f} "
-                f"sup={0.5 * (left_stats['sup'] + right_stats['sup']):.4f} "
-                f"src={0.5 * (left_stats['source'] + right_stats['source']):.4f} "
-                f"D={0.5 * (left_disc_loss + right_disc_loss):.4f} "
+                f"sup={averaged['sup']:.4f} src={averaged['source']:.4f} "
+                f"cons={averaged['cons']:.5f} stable={averaged['stable']:.5f} "
+                f"self={averaged['self']:.4f} selected={averaged['selected']:.3f} "
+                f"D={discriminator_loss:.4f} "
                 f"iter_ema={iteration_time_ema:.2f}s "
                 f"elapsed={elapsed / 3600:.2f}h eta={eta / 3600:.2f}h "
                 f"finish={finish:%Y-%m-%d %H:%M}",
